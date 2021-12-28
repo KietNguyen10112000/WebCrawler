@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "ES2020",
+        "target": "es2020",
+        "jsx": "preserve",
+        "strictFunctionTypes": true,
+        "outDir": "out",
+        "sourceMap": true,
+        "moduleResolution": "node"
+    },
+    "include": ["**/*.ts", "**/*.tsx"],
+    "exclude": [
+        "build",
+        "out",
+        "node_modules",
+        "**/node_modules/*"
+    ],
+    //"typeRoots": ["src/types/Global.d.ts" ]
+}
