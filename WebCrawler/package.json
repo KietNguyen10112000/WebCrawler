@@ -13,6 +13,7 @@
   "dependencies": {
     "@types/node": "^17.0.5",
     "amqplib": "^0.8.0",
+    "async-mutex": "^0.3.2",
     "axios": "^0.24.0",
     "dotenv": "^10.0.0",
     "mongodb": "^4.2.2",

@@ -191,6 +191,7 @@ ParsedArticle ParseBaoMoiContent(const pugi::xml_document& doc)
 			}
 		}
 	);
+	if (title.empty()) return {};
 	ret.title = XMLInnerText(title.front());
 
 	auto content = XMLFind(root,
@@ -201,6 +202,7 @@ ParsedArticle ParseBaoMoiContent(const pugi::xml_document& doc)
 			}
 		}
 	);
+	if (content.empty()) return {};
 
 	auto& retContent = ret.content;
 	for (auto& it = content.rbegin(); it != content.rend(); it++)
@@ -218,6 +220,7 @@ ParsedArticle ParseBaoMoiContent(const pugi::xml_document& doc)
 			}
 		}
 	);
+	if (author.empty()) return {};
 	auto& retAuthor = ret.author;
 	for (auto& it = author.rbegin(); it != author.rend(); it++)
 	{
@@ -240,7 +243,7 @@ ParsedArticle ParseBaoMoiContent(const pugi::xml_document& doc)
 	return ret;
 }
 
-void ParseBaoMoiExternalLinks(const pugi::xml_document& doc, std::vector<std::string>& links)
+void ParseExternalLinks(const pugi::xml_document& doc, std::vector<std::string>& links, const std::string& rootLink)
 {
 	auto root = doc.root();
 
@@ -255,6 +258,10 @@ void ParseBaoMoiExternalLinks(const pugi::xml_document& doc, std::vector<std::st
 	{
 		std::string link = it->attribute("href").value();
 
+		if (link.back() == ';') continue;
+
+		if (link.find('#') != std::string::npos) continue;
+
 		auto protocol = GetProtocol(link);
 
 		if (protocol == "https")
@@ -263,9 +270,113 @@ void ParseBaoMoiExternalLinks(const pugi::xml_document& doc, std::vector<std::st
 		}
 		else
 		{
-			links.push_back("https://baomoi.com" + link);
+			links.push_back(rootLink + link);
 		}
 	}
+}
+
+ParsedArticle ParseVnExpressContent(const pugi::xml_document& doc)
+{
+	auto root = doc.root();
+
+	ParsedArticle ret;
+
+	auto title = XMLFind(root,
+		{
+			"h1",
+			{
+				{ "class", "title-detail" }
+			}
+		}
+	);
+	if (title.empty()) return {};
+	ret.title = XMLInnerText(title.front());
+
+
+	auto desc = XMLFind(root,
+		{
+			"p",
+			{
+				{ "class", "description" }
+			}
+		}
+	);
+	std::string descStr = desc.empty() ? "" : XMLInnerText(desc.front());
+
+	auto content = XMLFind(root,
+		{
+			"p",
+			{
+				{ "class", "Normal" }
+			}
+		}
+	);
+	if (content.empty()) return {};
+
+	auto author = XMLFind(root,
+		{
+			"p",
+			{
+				{ "class", "author_mail" }
+			}
+		}
+	);
+	if (author.empty())
+	{
+		author = XMLFind(root,
+			{
+				"p",
+				{
+					{ "class", "Normal" },
+					{ "style", "text-align:right;" },
+				}
+			}
+		);
+	}
+
+	bool flag = false;
+	if (author.empty())
+	{
+		ret.author = "Unknown";
+	}
+	else
+	{
+		flag = true;
+
+		auto& retAuthor = ret.author;
+		for (auto& it = author.rbegin(); it != author.rend(); it++)
+		{
+			retAuthor += XMLInnerText(*it);
+			retAuthor += "\n";
+		}
+		if (!retAuthor.empty()) retAuthor.pop_back();
+	}
+
+	auto& end = content.rend();
+
+	if (flag) end--;
+
+	auto& retContent = ret.content;
+	retContent += descStr + "\n";
+	for (auto& it = content.rbegin(); it != end; it++)
+	{
+		retContent += XMLInnerText(*it);
+		retContent += "\n";
+	}
+	if (!retContent.empty()) retContent.pop_back();
+
+
+	auto url = XMLFind(root,
+		{
+			"meta",
+			{
+				{ "property", "og:url" }
+			}
+		}
+	);
+	ret.URL = url.front().attribute("content").value();
+
+	return ret;
 }
 
 
@@ -303,7 +414,7 @@ inline void MakeJSParsedArticle(
 
 	auto arr = v8::Array::New(isolate, &jsLinks[0], jsLinks.size());
 
-	target->Set(context, JsString("URLs"), arr);
+	target->Set(context, JsString("links"), arr);
 }
 
 
@@ -335,8 +446,10 @@ void ParseArticle(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 
 	std::vector<std::string> links;
-	ParseBaoMoiExternalLinks(doc, links);
-	auto ret = ParseBaoMoiContent(doc);
+	//ParseExternalLinks(doc, links, "https://baomoi.com");
+	ParseExternalLinks(doc, links, "https://vnexpress.net");
+	//auto ret = ParseBaoMoiContent(doc);
+	auto ret = ParseVnExpressContent(doc);
 
 
 	//======================================return to js side=====================================================
@@ -359,8 +472,8 @@ void ParseExternalLinks(const v8::FunctionCallbackInfo<v8::Value>& args)
 	}
 
 	std::vector<std::string> links;
-	ParseBaoMoiExternalLinks(doc, links);
-
+	//ParseExternalLinks(doc, links, "https://baomoi.com");
+	ParseExternalLinks(doc, links, "https://vnexpress.net");
 
 	//======================================return to js side=====================================================
 	std::vector<v8::Local<v8::Value>> jsLinks;
