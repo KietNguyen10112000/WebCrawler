@@ -21,6 +21,7 @@ extern "C"
 
 struct ParsedArticle
 {
+	std::string tag;
 	std::string URL;
 	std::string title;
 	std::string content;
@@ -109,15 +110,15 @@ std::string XMLInnerText(pugi::xml_node target)
 	{
 		std::string str = target.text().as_string();
 
-		if (!str.empty())
-		{
-			while (!str.empty() && (str.back() == '\n' || str.back() == '\t' || str.back() == ' '))
-			{
-				str.pop_back();
-			}
+		//if (!str.empty())
+		//{
+		//	while (!str.empty() && (str.back() == '\n' || str.back() == '\t' || str.back() == ' '))
+		//	{
+		//		str.pop_back();
+		//	}
 
-			if (str.back() != ' ') str.push_back(' ');
-		}
+		//	//if (str.back() != ' ') str.push_back(' ');
+		//}
 
 		return str;
 	}
@@ -281,6 +282,17 @@ ParsedArticle ParseVnExpressContent(const pugi::xml_document& doc)
 
 	ParsedArticle ret;
 
+	auto tags = XMLFind(root,
+		{
+			"ul",
+			{
+				{ "class", "breadcrumb" }
+			}
+		}
+	);
+	if (tags.empty()) return {};
+	ret.tag = XMLInnerText(tags.front().first_child());
+
 	auto title = XMLFind(root,
 		{
 			"h1",
@@ -393,13 +405,20 @@ inline void MakeJSParsedArticle(
 	v8::Isolate* isolate,
 	v8::Local<v8::Context> context,
 	v8::Local<v8::Object> target, 
-	const std::string& url, 
-	const std::string& title, 
-	const std::string& content,
-	const std::string& author,
-	const std::vector<std::string>& links
+	std::string& tag,
+	std::string& url, 
+	std::string& title, 
+	std::string& content,
+	std::string& author,
+	std::vector<std::string>& links
 	)
 {
+	//if (!tag.empty() && tag.back() == ' ') tag.pop_back();
+	//if (!title.empty() && title.back() == ' ') title.pop_back();
+	//if (!content.empty() && content.back() == ' ') content.pop_back();
+	//if (!author.empty() && author.back() == ' ') author.pop_back();
+	//std::cout << content << "\n";
+	target->Set(context, JsString("tag"), JsString(tag.c_str()));
 	target->Set(context, JsString("URL"), JsString(url.c_str()));
 	target->Set(context, JsString("title"), JsString(title.c_str()));
 	target->Set(context, JsString("content"), JsString(content.c_str()));
@@ -454,7 +473,7 @@ void ParseArticle(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 	//======================================return to js side=====================================================
 	auto obj = v8::Object::New(isolate);
-	MakeJSParsedArticle(isolate, context, obj, ret.URL, ret.title, ret.content, ret.author, links);
+	MakeJSParsedArticle(isolate, context, obj, ret.tag, ret.URL, ret.title, ret.content, ret.author, links);
 	args.GetReturnValue().Set(obj);
 }
 

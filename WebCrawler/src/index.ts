@@ -84,8 +84,6 @@ async function CrawlArticle(url:string) {
     author: article.author
   }
 
-  //console.log(article)
-
   await mongodbCollection.insertOne(record)
 
   console.log(`[CRAWLED URL]: ${article.URL}`)
@@ -306,6 +304,10 @@ async function Main() {
 }
 
 Main()
+
+/* CrawlArticle(
+  'https://vnexpress.net/them-14-440-ca-nhiem-4409384.html'
+) */
 
 //let reg: RegExp = /^https:\/\/baomoi.com\/[a-zA-Z0-9]\/c\/[0-9]\.epi/
 //let reg: RegExp = /^https:\/\/baomoi.com\/+[a-zA-Z0-9\-]+\/c\/+[0-9]+\.epi+$/

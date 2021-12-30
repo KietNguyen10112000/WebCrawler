@@ -1,4 +1,5 @@
 interface ParsedArticle {
+  tag: String
   URL: String
   title: String
   content: String
