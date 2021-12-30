@@ -78,6 +78,7 @@ async function CrawlArticle(url:string) {
   }
 
   const record = {
+    tag: article.tag,
     URL: article.URL.length == 0 ? url : article.URL,
     title: article.title,
     content: article.content,
