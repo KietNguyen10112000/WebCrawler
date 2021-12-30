@@ -104,26 +104,18 @@ async function CrawlLinks(url:string) {
   await InsertLinks(links)
 }
 
-function BootstrapRabbitMQ() {
+async function BootstrapRabbitMQ() {
   if (config.RABBITMQ_ALLOW_BOOTSTRAP != 'allow') {
     return
   }
 
-  Axios.get(config.ROOT_URL).then(function(response) {
+  const response = await Axios.get(config.ROOT_URL)
 
-    if (response.status != 200) {
-      throw `HTTP request error with code: ${response.status}`
-    }
+  const links = htmlparser.ParseExternalLinks(response.data)
 
-    const links = htmlparser.ParseExternalLinks(response.data)
+  await InsertLinks(links)
 
-    for (let i = 0; i < links.length; i++) {
-      const element = links[i];
-      amqpChannel.sendToQueue(amqpQueueName, Buffer.from(element))
-    }
-
-    amqpOk = true
-  })
+  amqpOk = true
 
 }
 
